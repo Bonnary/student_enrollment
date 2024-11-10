@@ -1,0 +1,1 @@
+supabase gen types typescript --local > database.types.ts

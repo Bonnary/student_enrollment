@@ -1,7 +1,8 @@
+import { Tables } from "@/backend/database.types";
 import Navigation from "@/components/navigation";
-import { User } from "@supabase/supabase-js";
 
-export default function DashboardPage({ user }: { user: User }) {
+
+export default function DashboardPage({ user }: { user:  Tables<'users'>}) {
   return (
     
       <div className="h-full flex dark:bg-[#1F1F1F]">

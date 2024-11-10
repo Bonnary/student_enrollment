@@ -11,60 +11,54 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/backend/supabase-client";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
-import { User } from "@supabase/supabase-js";
-import { logoutIfNotUser } from "@/backend/utility-function";
+import { Tables } from "@/backend/database.types";
+import { getToken, removeToken } from "@/backend/jtw-storage";
 
 interface NavigationProps {
   active?: "dashboard" | "admin" | "student";
-  user: User;
+  user: Tables<"users">;
 }
 
 export default function Navigation({
   active = "dashboard",
   user,
 }: NavigationProps) {
-  const navaction = useNavigate();
+  const navigate = useNavigate();
+
   const [isAdmin, setIsAdmin] = useState(false);
 
-  console.log(user);
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
+    const promise = new Promise((resolve, reject) => {
+      supabase.rpc("logout_user", { _refresh_token: getToken()! }).then((res) => {
+        if (res.error) {
+          reject(res.error);
+        } else {
+          resolve(res);
+          removeToken();
+          navigate({ to: "/" });
+        }
+      });
+    });
 
-    if (error) {
-      toast.error(error.message);
-    } else {
-      navaction({ to: "/" });
-    }
-  };
-
-  const checkAdmin = async () => {
-    console.log(user.id);
-
-    const { data, error } = await supabase
-      .from("user_info")
-      .select("*")
-      .eq("user_id", user?.id as string)
-      .eq("role_id", 1);
-
-    if (error) {
-      toast.error(error.message);
-    }
-
-    return data;
+    toast.promise(promise, {
+      loading: "Loading...",
+      success: "Logout successfully",
+      error: (promise) => `Error: ${promise.message}`,
+    });
   };
 
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
-        const adminData = await checkAdmin();
-        setIsAdmin(adminData !== null && adminData.length > 0);
+        setIsAdmin(user.role_id === 1);
       } catch (error) {
         console.error("Error checking admin status:", error);
+        removeToken();
+        navigate({ to: "/" });
       }
     };
 
-    logoutIfNotUser({ user });
     checkAdminStatus();
   }, []);
 
@@ -92,9 +86,7 @@ export default function Navigation({
               <AvatarFallback>PF</AvatarFallback>
             </Avatar>
 
-            <h1 className="ml-4 text-primary-foreground ">
-              {user?.user_metadata.full_name}
-            </h1>
+            <h1 className="ml-4 text-primary-foreground ">{user.full_name}</h1>
           </div>
           <Separator className="my-4 bg-gray-500" />
 

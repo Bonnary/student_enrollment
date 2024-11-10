@@ -27,7 +27,6 @@ export default function AuthLayout({
   }, []);
 
   useEffect(() => {
-    console.log(user);
     if (user === null) {
       redirect({ to: "/" });
     }

@@ -1,17 +1,15 @@
-import { supabase } from '@/backend/supabase-client';
+import { getToken } from '@/backend/jtw-storage';
 import LoginPage from '@/pages/login-page'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
 
 export const Route = createFileRoute("/")({
+  loader: async () => {
+    const token = getToken();
 
-  beforeLoad: async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user) {
-      return redirect({ to: "/dashboard" });
+    // If no token, redirect to home page
+    if (token) {
+      throw redirect({ to: "/dashboard" });
     }
   },
 

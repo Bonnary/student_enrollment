@@ -12,14 +12,22 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as StudentImport } from './routes/student'
+import { Route as ForgotPasswordImport } from './routes/forgot-password'
 import { Route as DashboardImport } from './routes/dashboard'
 import { Route as AdminImport } from './routes/admin'
 import { Route as IndexImport } from './routes/index'
+import { Route as ResetPasswordEmailImport } from './routes/reset-password/$email'
+import { Route as CertificateStudentIdImport } from './routes/certificate/$studentId'
 
 // Create/Update Routes
 
 const StudentRoute = StudentImport.update({
   path: '/student',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const ForgotPasswordRoute = ForgotPasswordImport.update({
+  path: '/forgot-password',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -35,6 +43,16 @@ const AdminRoute = AdminImport.update({
 
 const IndexRoute = IndexImport.update({
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const ResetPasswordEmailRoute = ResetPasswordEmailImport.update({
+  path: '/reset-password/$email',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const CertificateStudentIdRoute = CertificateStudentIdImport.update({
+  path: '/certificate/$studentId',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -63,11 +81,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardImport
       parentRoute: typeof rootRoute
     }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordImport
+      parentRoute: typeof rootRoute
+    }
     '/student': {
       id: '/student'
       path: '/student'
       fullPath: '/student'
       preLoaderRoute: typeof StudentImport
+      parentRoute: typeof rootRoute
+    }
+    '/certificate/$studentId': {
+      id: '/certificate/$studentId'
+      path: '/certificate/$studentId'
+      fullPath: '/certificate/$studentId'
+      preLoaderRoute: typeof CertificateStudentIdImport
+      parentRoute: typeof rootRoute
+    }
+    '/reset-password/$email': {
+      id: '/reset-password/$email'
+      path: '/reset-password/$email'
+      fullPath: '/reset-password/$email'
+      preLoaderRoute: typeof ResetPasswordEmailImport
       parentRoute: typeof rootRoute
     }
   }
@@ -79,14 +118,20 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/student': typeof StudentRoute
+  '/certificate/$studentId': typeof CertificateStudentIdRoute
+  '/reset-password/$email': typeof ResetPasswordEmailRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/student': typeof StudentRoute
+  '/certificate/$studentId': typeof CertificateStudentIdRoute
+  '/reset-password/$email': typeof ResetPasswordEmailRoute
 }
 
 export interface FileRoutesById {
@@ -94,15 +139,40 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/student': typeof StudentRoute
+  '/certificate/$studentId': typeof CertificateStudentIdRoute
+  '/reset-password/$email': typeof ResetPasswordEmailRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/dashboard' | '/student'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/forgot-password'
+    | '/student'
+    | '/certificate/$studentId'
+    | '/reset-password/$email'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/dashboard' | '/student'
-  id: '__root__' | '/' | '/admin' | '/dashboard' | '/student'
+  to:
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/forgot-password'
+    | '/student'
+    | '/certificate/$studentId'
+    | '/reset-password/$email'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/forgot-password'
+    | '/student'
+    | '/certificate/$studentId'
+    | '/reset-password/$email'
   fileRoutesById: FileRoutesById
 }
 
@@ -110,14 +180,20 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   DashboardRoute: typeof DashboardRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   StudentRoute: typeof StudentRoute
+  CertificateStudentIdRoute: typeof CertificateStudentIdRoute
+  ResetPasswordEmailRoute: typeof ResetPasswordEmailRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   DashboardRoute: DashboardRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   StudentRoute: StudentRoute,
+  CertificateStudentIdRoute: CertificateStudentIdRoute,
+  ResetPasswordEmailRoute: ResetPasswordEmailRoute,
 }
 
 export const routeTree = rootRoute
@@ -135,7 +211,10 @@ export const routeTree = rootRoute
         "/",
         "/admin",
         "/dashboard",
-        "/student"
+        "/forgot-password",
+        "/student",
+        "/certificate/$studentId",
+        "/reset-password/$email"
       ]
     },
     "/": {
@@ -147,8 +226,17 @@ export const routeTree = rootRoute
     "/dashboard": {
       "filePath": "dashboard.tsx"
     },
+    "/forgot-password": {
+      "filePath": "forgot-password.tsx"
+    },
     "/student": {
       "filePath": "student.tsx"
+    },
+    "/certificate/$studentId": {
+      "filePath": "certificate/$studentId.tsx"
+    },
+    "/reset-password/$email": {
+      "filePath": "reset-password/$email.tsx"
     }
   }
 }

@@ -1,10 +1,9 @@
 import logo from "@/assets/logo.jpg";
+import { setToken } from "@/backend/jtw-storage";
 import { supabase } from "@/backend/supabase-client";
 import EmailInput from "@/components/email-input";
 import PasswordInput from "@/components/password-input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -12,21 +11,21 @@ import { toast } from "sonner";
 export default function LoginPage() {
   const navigate = useNavigate();
 
-
   const onLogin = async (e: any) => {
     e.preventDefault();
 
     const promise = new Promise((resolve, reject) => {
-      supabase.auth
-        .signInWithPassword({
-          email: e.target.email.value,
-          password: e.target.password.value,
+      supabase
+        .rpc("login_user", {
+          _email: e.target.email.value,
+          _password: e.target.password.value,
         })
         .then((res) => {
           if (res.error) {
             reject(res.error);
           } else {
             resolve(res);
+            setToken(res.data[0].refresh_token);
             navigate({ to: "/dashboard" });
           }
         });
@@ -38,7 +37,6 @@ export default function LoginPage() {
       error: (promise) => `Error: ${promise.message}`,
     });
   };
-
 
   return (
     <>
@@ -52,17 +50,22 @@ export default function LoginPage() {
           <EmailInput />
           <PasswordInput />
 
-          <div className="flex items-start w-full space-x-2">
+          {/* <div className="flex items-start w-full space-x-2">
             <Checkbox id="remember" />
             <Label htmlFor="remember">Remember Me</Label>
-          </div>
+          </div> */}
 
           <Button type="submit" className="w-full bg-primary">
             Login
           </Button>
 
           <div className="flex justify-start w-full">
-            <p className="text-primary">I forgot password</p>
+            <Button
+              variant="link"
+              onClick={() => navigate({ to: "/forgot-password" })}
+            >
+              I forgot password
+            </Button>
           </div>
         </form>
       </div>

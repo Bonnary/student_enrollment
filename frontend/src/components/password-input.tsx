@@ -1,19 +1,22 @@
-"use client"
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Eye, EyeOff } from "lucide-react";
 
-import { useState } from "react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Eye, EyeOff } from "lucide-react"
-
-export default function PasswordInput({name = "password"}:{name?:string}) {
-  const [showPassword, setShowPassword] = useState(false)
+export default function PasswordInput({
+  name = "password",
+}: {
+  name?: string;
+ 
+}) {
+  const [showPassword, setShowPassword] = useState(false);
 
   const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword)
-  }
+    setShowPassword(!showPassword);
+  };
 
   return (
-    <div className="relative w-full max-w-sm">
+    <div className="relative w-full ">
       <Input
         type={showPassword ? "text" : "password"}
         placeholder="Password"
@@ -35,5 +38,5 @@ export default function PasswordInput({name = "password"}:{name?:string}) {
         )}
       </Button>
     </div>
-  )
+  );
 }

@@ -1,5 +1,5 @@
 import Navigation from "@/components/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,190 +10,252 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Loader2 } from "lucide-react";
+
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+import { supabase } from "@/backend/supabase-client";
+import { Link, redirect } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { Functions, Tables } from "@/backend/database.types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 import FileUploadDialog from "@/components/file-upload-dialog";
-import { User } from "@supabase/supabase-js";
+import DeleteStudentAlertDialog from "@/components/delete-student-alert-dialog";
+import EditStudentDialog from "@/components/edit-student-alert-dialog";
 
-// Generate 100 sample accounts for demonstration
-const generateAccounts = (count: number) => {
-  return Array.from({ length: count }, (_, i) => ({
-    id: i + 1,
-    name: `User ${i + 1}`,
-    email: `user${i + 1}@example.com`,
-    role: i % 5 === 0 ? "admin" : "user",
-    createdDate: format(
-      new Date(
-        2024,
-        9,
-        11,
-        Math.floor(Math.random() * 24),
-        Math.floor(Math.random() * 60)
-      ),
-      "dd-MM-yyyy hh:mm a"
-    ),
-  }));
-};
-
-const accounts = generateAccounts(100);
-
-export default function StudentPage({ user }: { user: User }) {
+export default function StudentPage({
+  user,
+  subjects,
+  colleges,
+}: {
+  user: Tables<"users">;
+  subjects: Tables<"subjects">[];
+  colleges: Tables<"colleges">[];
+}) {
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [student, setStudent] = useState<Functions<"get_student">>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [searchFullName, setSearchFullName] = useState("");
+  const [searchMajor, setSearchMajor] = useState("");
+  const [searchCollege, setSearchCollege] = useState("");
   const itemsPerPage = 10;
-  const totalPages = Math.ceil(accounts.length / itemsPerPage);
 
-  const getCurrentPageData = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return accounts.slice(startIndex, endIndex);
-  };
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setIsLoading(true);
+
+        if (user.role_id !== 1) {
+          return redirect({ to: "/" });
+        }
+
+        // Fetch users with pagination and search filters
+        let query = supabase.rpc("get_student");
+
+        if (searchFullName) {
+          query = query.like("khmer_name", `%${searchFullName}%`);
+        }
+
+        if (searchMajor) {
+          query = query.eq("subject", searchMajor);
+        }
+
+        if (searchCollege) {
+          query = query.eq("college", searchCollege);
+        }
+
+        const { data, error, count } = await query.range(
+          (currentPage - 1) * itemsPerPage,
+          currentPage * itemsPerPage - 1
+        );
+
+        if (error) throw error;
+
+        setStudent(data || []);
+        setTotalCount(count || 0);
+      } catch (error) {
+        if (error instanceof Error) {
+          toast.error(error.message);
+        } else {
+          toast.error("Failed to fetch users");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUsers();
+
+    console.log(searchCollege);
+    console.log(searchMajor);
+  }, [currentPage, user?.id, searchFullName, searchMajor, searchCollege]);
+
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+
   return (
-      <div className="h-full flex dark:bg-[#1F1F1F]">
-        <Navigation active="student" user={user}/>
+    <div className="h-full flex dark:bg-[#1F1F1F]">
+      <Navigation active="student" user={user} />
 
-        <main className="flex-1 h-full overflow-y-hidden ">
-          <div className="container p-6 mx-auto bg-[#f4f6f9]">
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-2xl font-bold">
-                Student List (Total: {accounts.length})
-              </h1>
-              <FileUploadDialog buttonTitle="Add New Account" />
-            </div>
+      <main className="flex-1 h-full overflow-y-hidden">
+        <div className="container p-6 mx-auto bg-[#f4f6f9]">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold">Student List</h1>
+            <FileUploadDialog buttonTitle="Add Student" />
+          </div>
 
-            <div className="p-6 mb-6 bg-white rounded-lg shadow">
-              <h2 className="mb-4 text-lg font-semibold">Search User</h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="block mb-1 text-sm font-medium text-gray-700"
-                  >
-                    Email address
-                  </label>
-                  <Input id="email" placeholder="email" />
-                </div>
-                <div>
-                  <label
-                    htmlFor="fullName"
-                    className="block mb-1 text-sm font-medium text-gray-700"
-                  >
-                    Full Name
-                  </label>
-                  <Input id="fullName" placeholder="Full Name" />
-                </div>
-                <div>
-                  <label
-                    htmlFor="date"
-                    className="block mb-1 text-sm font-medium text-gray-700"
-                  >
-                    Date
-                  </label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !selectedDate && "text-muted-foreground"
-                        )}
+          <div className="p-6 mb-6 bg-white rounded-lg shadow">
+            <h2 className="mb-4 text-lg font-semibold">Search User</h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div>
+                <label
+                  htmlFor="fullName"
+                  className="block mb-1 text-sm font-medium text-gray-700"
+                >
+                  Full Name
+                </label>
+                <Input
+                  id="fullName"
+                  placeholder="Full Name"
+                  value={searchFullName}
+                  onChange={(e) => setSearchFullName(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="fullName"
+                  className="block mb-1 text-sm font-medium text-gray-700"
+                >
+                  Major
+                </label>
+                <Select onValueChange={(value) => setSearchMajor(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Major" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects.map((subject) => (
+                      <SelectItem
+                        key={subject.id}
+                        value={subject.subject_name.toString()}
                       >
-                        <CalendarIcon className="w-4 h-4 mr-2" />
-                        {selectedDate ? (
-                          format(selectedDate, "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                        {subject.subject_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="flex justify-end mt-4 space-x-2">
-                <Button>Search</Button>
-                <Button className="bg-[#218838]">Clear</Button>
+
+              <div>
+                <label
+                  htmlFor="fullName"
+                  className="block mb-1 text-sm font-medium text-gray-700"
+                >
+                  Major
+                </label>
+                <Select onValueChange={(value) => setSearchCollege(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Major" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {colleges.map((college) => (
+                      <SelectItem
+                        key={college.id}
+                        value={college.college_name.toString()}
+                      >
+                        {college.college_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+          </div>
 
-            <div className="overflow-hidden bg-white rounded-lg shadow">
-              <ScrollArea className="w-full h-[300px]">
+          <div className="overflow-hidden bg-white rounded-lg shadow">
+            <ScrollArea className="w-full h-[300px]">
+              {isLoading ? (
+                <div className="flex items-center justify-center h-[300px]">
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                </div>
+              ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[50px]">#</TableHead>
                       <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Created Date</TableHead>
+                      <TableHead>Gender</TableHead>
+                      <TableHead>Major</TableHead>
+                      <TableHead>Generation</TableHead>
                       <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {getCurrentPageData().map((account) => (
-                      <TableRow key={account.id}>
-                        <TableCell>{account.id}</TableCell>
-                        <TableCell>{account.name}</TableCell>
-                        <TableCell>{account.email}</TableCell>
-                        <TableCell>{account.role}</TableCell>
-                        <TableCell>{account.createdDate}</TableCell>
+                    {student.map((data, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          {(currentPage - 1) * itemsPerPage + index + 1}
+                        </TableCell>
+                        <TableCell>{data.khmer_name}</TableCell>
+                        <TableCell>{data.sex}</TableCell>
+                        <TableCell>{data.subject}</TableCell>
+                        <TableCell>{data.generation}</TableCell>
                         <TableCell className="text-right">
-                          <Button className="mr-2">Edit</Button>
-                          <Button variant="destructive" className="text-white">
-                            Delete
+                          <Button variant="outline" className="mr-2">
+                            <Link
+                              to="/certificate/$studentId"
+                              params={{ studentId: data.id.toString() }}
+                            >
+                              Certificate
+                            </Link>
                           </Button>
+                          <EditStudentDialog student_object={data} />
+                          <DeleteStudentAlertDialog student_id={data.id} />
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              </ScrollArea>
-            </div>
-
-            {accounts.length > 10 && (
-              <div className="flex justify-center mt-4">
-                <nav className="inline-flex rounded-md shadow">
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.max(prev - 1, 1))
-                    }
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <div className="px-4 py-2 text-sm font-medium text-gray-700 bg-white">
-                    Page {currentPage} of {totalPages}
-                  </div>
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                    }
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
-                </nav>
-              </div>
-            )}
+              )}
+            </ScrollArea>
           </div>
-        </main>
-      </div>
+
+          {totalCount > itemsPerPage && (
+            <div className="flex justify-center mt-4">
+              <nav className="inline-flex rounded-md shadow">
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(prev - 1, 1))
+                  }
+                  disabled={currentPage === 1 || isLoading}
+                >
+                  Previous
+                </Button>
+                <div className="px-4 py-2 text-sm font-medium text-gray-700 bg-white">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages || isLoading}
+                >
+                  Next
+                </Button>
+              </nav>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
   );
 }
