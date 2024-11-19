@@ -1,5 +1,5 @@
 import { Tables } from "@/backend/database.types";
-import { getToken } from "@/backend/jtw-storage";
+import { getToken, removeToken } from "@/backend/jtw-storage";
 import { supabase } from "@/backend/supabase-client";
 import StudentPage from "@/pages/student-page";
 import { createFileRoute, redirect } from "@tanstack/react-router";
@@ -13,14 +13,25 @@ export const Route = createFileRoute("/student")({
       throw redirect({ to: "/" });
     }
 
-    const { data } = await supabase.rpc("get_user_profile", {
-      _refresh_token: token,
-    });
+    try {
+      const { data, error } = await supabase.rpc("get_user_profile", {
+        _refresh_token: token,
+      });
+      const { data: subjects } = await supabase.from("subjects").select("*");
+      const { data: colleges } = await supabase.from("colleges").select("*");
 
-    const { data: subjects } = await supabase.from("subjects").select("*");
-    const { data: colleges } = await supabase.from("colleges").select("*");
+      // If error or no data, remove token and redirect
+      if (error || !data || data.length === 0) {
+        removeToken();
+        throw redirect({ to: "/" });
+      }
 
-    return { data, subjects, colleges };
+      return { data, subjects, colleges };
+    } catch (err) {
+      // Handle any other errors
+      removeToken();
+      throw redirect({ to: "/" });
+    }
   },
   component: () => {
     const { data, subjects, colleges } = Route.useLoaderData();

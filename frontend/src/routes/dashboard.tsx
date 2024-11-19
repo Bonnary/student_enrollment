@@ -1,4 +1,4 @@
-import { getToken } from "@/backend/jtw-storage";
+import { getToken,removeToken } from "@/backend/jtw-storage";
 import { supabase } from "@/backend/supabase-client";
 import DashboardPage from "@/pages/dashboard-page";
 import { createFileRoute, redirect } from "@tanstack/react-router";
@@ -13,11 +13,23 @@ export const Route = createFileRoute("/dashboard")({
       throw redirect({ to: "/" });
     }
 
-    const { data } = await supabase.rpc("get_user_profile", {
-      _refresh_token: token,
-    });
+    try {
+      const { data, error } = await supabase.rpc("get_user_profile", {
+        _refresh_token: token,
+      });
 
-    return { data };
+      // If error or no data, remove token and redirect
+      if (error || !data || data.length === 0) {
+        removeToken();
+        throw redirect({ to: "/" });
+      }
+
+      return { data };
+    } catch (err) {
+      // Handle any other errors
+      removeToken();
+      throw redirect({ to: "/" });
+    }
   },
   component: () => {
     const { data } = Route.useLoaderData();
